@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Sync Watch</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { max-width: 1400px; width: 100%; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .join-form { background-color: #181818; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px solid #333; }
+        .join-form input { padding: 10px; margin: 5px; border-radius: 4px; border: 1px solid #555; background-color: #333; color: #fff; }
+        .join-form button { padding: 10px 20px; border-radius: 4px; border: none; background-color: #1db954; color: #fff; font-weight: bold; cursor: pointer; }
+
+        .main-content { display: none; grid-template-columns: 3fr 1fr; gap: 20px; }
+        .left-panel { display: flex; flex-direction: column; }
+        .right-panel { background-color: #181818; padding: 15px; border-radius: 8px; border: 1px solid #333; height: fit-content; }
+
+        .video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; background: #000; margin-bottom: 20px; border-radius: 8px;}
+        .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+        .controls, .room-info { background-color: #181818; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333;}
+        .controls input { width: calc(100% - 120px); }
+        .controls button { width: 100px; margin-left: 10px; }
+
+        /* ## NEW FEATURE: Queue Styling */
+        #video-queue { list-style: none; padding: 0; margin-top: 10px; }
+        #video-queue li { background: #282828; padding: 10px; margin-bottom: 8px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s; display: flex; justify-content: space-between; align-items: center;}
+        #video-queue li:hover { background-color: #383838; }
+        #video-queue li.now-playing { background-color: #1db954; font-weight: bold; }
+        #video-queue .video-title { max-width: 80%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        #share-link { background-color: #333; padding: 8px; border-radius: 4px; font-family: monospace; word-break: break-all; margin-top: 10px; display: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header"><h1>YouTube Sync Watch</h1></div>
+
+        <!-- Join Form -->
+        <div id="join-container" class="join-form">
+            <h3>Join or Create a Room</h3>
+            <input type="text" id="username" placeholder="Enter your name">
+            <input type="text" id="room" placeholder="Enter room name (or leave blank to create one)">
+            <button id="join-btn">Join Room</button>
+        </div>
+
+        <!-- Main Content -->
+        <div id="main-content" class="main-content">
+            <div class="left-panel">
+                <div class="controls">
+                    <input type="text" id="video-url" placeholder="Paste YouTube URL to add to queue">
+                    <button id="add-to-queue-btn">Add Video</button>
+                </div>
+                <div class="video-container"><div id="player"></div></div>
+            </div>
+
+            <div class="right-panel">
+                <div class="room-info">
+                    <h3>Room: <span id="room-name"></span></h3>
+                    <p>Share this link with friends:</p>
+                    <div id="share-link" title="Click to copy"></div>
+
+                    <h4>Users Online:</h4>
+                    <ul id="user-list"></ul>
+
+                    <!-- ## NEW FEATURE: Video Queue UI -->
+                    <h4>Video Queue:</h4>
+                    <ul id="video-queue">
+                        <!-- Queue items will be added here by JS -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        // --- Globals ---
+        let player, currentRoom = '', currentUsername = '', isReceivingEvent = false;
+
+        // --- DOM Elements ---
+        const joinContainer = document.getElementById('join-container');
+        const mainContent = document.getElementById('main-content');
+        const joinBtn = document.getElementById('join-btn');
+        const addToQueueBtn = document.getElementById('add-to-queue-btn');
+        const roomNameEl = document.getElementById('room-name');
+        const userListEl = document.getElementById('user-list');
+        const shareLinkEl = document.getElementById('share-link');
+        const videoQueueEl = document.getElementById('video-queue');
+
+        // --- Socket.IO Connection ---
+        const socket = io();
+
+        // This is the new, improved block. Place it where the old `window.onload` was.
+        document.addEventListener('DOMContentLoaded', () => {
+            // Use the browser's location to get the path, e.g., "/room/my-cool-room"
+            const path = window.location.pathname;
+            const parts = path.split('/'); // -> ['', 'room', 'my-cool-room']
+
+            // Check if the URL is in the format /room/<something>
+            if (parts.length === 3 && parts[1] === 'room' && parts[2]) {
+                const roomNameFromUrl = parts[2];
+                console.log('Detected room from URL:', roomNameFromUrl);
+                document.getElementById('room').value = roomNameFromUrl;
+                document.getElementById('room').disabled = true;
+            }
+        });
+
+        joinBtn.addEventListener('click', () => {
+            currentUsername = document.getElementById('username').value.trim();
+            let roomInput = document.getElementById('room').value.trim();
+
+            if (!currentUsername) {
+                alert('Please enter a username.');
+                return;
+            }
+
+            // If room is blank, generate a random one client-side
+            currentRoom = roomInput || `room-${Math.random().toString(36).substr(2, 5)}`;
+
+            // Redirect to the clean URL if a new room was created
+            if (!roomInput) {
+                window.history.pushState({}, '', `/room/${currentRoom}`);
+            }
+
+            socket.emit('join', { username: currentUsername, room: currentRoom });
+            joinContainer.style.display = 'none';
+            mainContent.style.display = 'grid'; // Changed to grid for panels
+            roomNameEl.textContent = currentRoom;
+
+            // ## NEW FEATURE: Create and display the shareable link
+            const shareableLink = window.location.origin + `/room/${currentRoom}`;
+            shareLinkEl.textContent = shareableLink;
+            shareLinkEl.style.display = 'block';
+        });
+
+        // ## NEW FEATURE: Add to Queue button event
+        addToQueueBtn.addEventListener('click', () => {
+            const videoUrl = document.getElementById('video-url').value;
+            const videoId = extractVideoID(videoUrl);
+            if (videoId) {
+                // We need the video title. A full implementation would use the YouTube Data API,
+                // but for simplicity, we'll just send the ID and let the server handle it.
+                // A better approach would be a server-side API call to get the real title.
+                socket.emit('add_to_queue', {
+                    room: currentRoom,
+                    video_id: videoId,
+                    video_title: `Video: ${videoId}` // Placeholder title
+                });
+                document.getElementById('video-url').value = ''; // Clear input
+            } else {
+                alert('Invalid YouTube URL');
+            }
+        });
+
+        // ## NEW FEATURE: Copy share link to clipboard
+        shareLinkEl.addEventListener('click', () => {
+            navigator.clipboard.writeText(shareLinkEl.textContent).then(() => {
+                alert('Room link copied to clipboard!');
+            }, (err) => {
+                console.error('Could not copy text: ', err);
+            });
+        });
+
+        // --- Socket.IO Event Listeners ---
+        socket.on('queue_update', (data) => {
+            renderQueue(data.queue);
+        });
+
+        socket.on('user_list_update', (data) => {
+            userListEl.innerHTML = '';
+            data.users.forEach(user => {
+                const li = document.createElement('li');
+                li.textContent = user;
+                userListEl.appendChild(li);
+            });
+        });
+
+<!--        socket.on('sync_state', (data) => {-->
+<!--            console.log('Syncing state from server:', data);-->
+<!--            isReceivingEvent = true;-->
+<!--            renderQueue(data.queue, data.current_video_index);-->
+
+<!--            if (player && data.current_video_index > -1) {-->
+<!--                const video = data.queue[data.current_video_index];-->
+<!--                player.loadVideoById(video.id, data.time);-->
+
+<!--                if (data.state === 'PLAYING') {-->
+<!--                    player.playVideo();-->
+<!--                } else {-->
+<!--                    player.pauseVideo();-->
+<!--                }-->
+<!--            }-->
+<!--            setTimeout(() => { isReceivingEvent = false; }, 1000);-->
+<!--        });-->
+        socket.on('sync_state', (data) => {
+            console.log('Syncing state from server:', data);
+            isReceivingEvent = true;
+            renderQueue(data.queue, data.current_video_index);
+
+            if (player && data.current_video_index > -1) {
+                const video = data.queue[data.current_video_index];
+
+                // --- FIX ---
+                // Load the video without auto-playing
+                player.loadVideoById(video.id);
+
+                // Wait a very brief moment for the load to initiate, then seek and set state.
+                // This is more robust than relying on the startSeconds parameter.
+                setTimeout(() => {
+                    player.seekTo(data.time, true);
+                    if (data.state === 'PLAYING') {
+                        player.playVideo();
+                    } else {
+                        player.pauseVideo();
+                    }
+
+                    // Re-enable event sending after a longer delay to ensure sync is complete
+                    setTimeout(() => { isReceivingEvent = false; }, 1200);
+                }, 200); // 200ms delay
+
+            } else {
+                // If there's no video, we can re-enable events sooner
+                isReceivingEvent = false;
+            }
+        });
+
+        socket.on('state_change', (data) => {
+            if (!player) return;
+            console.log('Received state change:', data);
+            isReceivingEvent = true;
+
+            if(data.current_video_index !== undefined) {
+                updateNowPlaying(data.current_video_index);
+            }
+
+            switch (data.event) {
+                case 'load_video':
+                    player.loadVideoById(data.video_id, data.time);
+                    if (data.state === 'PLAYING') player.playVideo();
+                    break;
+                case 'play':
+                    player.seekTo(data.time, true);
+                    player.playVideo();
+                    break;
+                case 'pause':
+                    player.pauseVideo();
+                    // Optional: seek on pause to ensure perfect sync
+                    player.seekTo(data.time, true);
+                    break;
+                case 'seek':
+                    player.seekTo(data.time, true);
+                    break;
+            }
+            setTimeout(() => { isReceivingEvent = false; }, 500);
+        });
+
+        // --- YouTube Player ---
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                height: '100%', width: '100%',
+                events: { 'onReady': onPlayerReady, 'onStateChange': onPlayerStateChange },
+                // Add a function to the playerVars object
+                playerVars: {
+                    // This will make the player start muted
+                    'mute': 1
+                }
+            });
+        }
+
+        function onPlayerReady(event) { console.log('Player is ready.'); }
+
+        function onPlayerStateChange(event) {
+            if (isReceivingEvent) return;
+            const currentTime = player.getCurrentTime();
+            let state;
+            switch (event.data) {
+                case YT.PlayerState.PLAYING: state = 'play'; break;
+                case YT.PlayerState.PAUSED: state = 'pause'; break;
+                case YT.PlayerState.ENDED: state = 'video_ended'; break; // ## NEW FEATURE
+                case YT.PlayerState.BUFFERING: state = 'seek'; break; // Treat buffering as a seek event
+                default: return; // Do nothing for other states
+            }
+            console.log('Sending player event:', state);
+            socket.emit('player_event', { room: currentRoom, event: state, time: currentTime });
+        }
+
+        // --- Utility Functions ---
+        function extractVideoID(url) {
+            const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+            return url.match(regex)?.[1] || null;
+        }
+
+        // ## NEW FEATURE: Functions to render and update the queue UI
+        function renderQueue(queue, nowPlayingIndex = -1) {
+            videoQueueEl.innerHTML = '';
+            queue.forEach((video, index) => {
+                const li = document.createElement('li');
+                li.dataset.index = index;
+                li.innerHTML = `<span class="video-title">${video.title}</span><small>Play</small>`;
+
+                if (index === nowPlayingIndex) {
+                    li.classList.add('now-playing');
+                }
+
+                li.addEventListener('click', () => {
+                    socket.emit('play_specific_video', { room: currentRoom, index: index });
+                });
+
+                videoQueueEl.appendChild(li);
+            });
+        }
+
+        function updateNowPlaying(index) {
+            document.querySelectorAll('#video-queue li').forEach(li => li.classList.remove('now-playing'));
+            const currentItem = document.querySelector(`#video-queue li[data-index="${index}"]`);
+            if (currentItem) {
+                currentItem.classList.add('now-playing');
+            }
+        }
+
+        // Load YouTube API script
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    </script>
+</body>
+</html>
