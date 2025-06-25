@@ -1,0 +1,25 @@
+# Python virtual environment
+venv/
+env/
+.venv/
+
+# Python cache and compiled files
+__pycache__/
+*.pyc
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# IDE/Editor specific files
+.vscode/
+.idea/
+
+# Sensitive information (NEVER commit these!)
+.env
+*.env
+config.ini
+
+# Log files
+*.log
