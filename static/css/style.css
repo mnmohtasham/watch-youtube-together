@@ -1,0 +1,30 @@
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+.container { max-width: 1400px; width: 100%; }
+.header { text-align: center; margin-bottom: 20px; }
+.join-form { background-color: #181818; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px solid #333; }
+.join-form input { padding: 10px; margin: 5px; border-radius: 4px; border: 1px solid #555; background-color: #333; color: #fff; }
+.join-form button { padding: 10px 20px; border-radius: 4px; border: none; background-color: #1db954; color: #fff; font-weight: bold; cursor: pointer; }
+
+.main-content { display: none; grid-template-columns: 3fr 1fr; gap: 20px; }
+.left-panel { display: flex; flex-direction: column; }
+.right-panel { background-color: #181818; padding: 15px; border-radius: 8px; border: 1px solid #333; height: fit-content; }
+
+.video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; background: #000; margin-bottom: 20px; border-radius: 8px;}
+.video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+.controls, .room-info { background-color: #181818; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333;}
+.controls input { width: calc(100% - 120px); }
+.controls button { width: 100px; margin-left: 10px; }
+
+#video-queue { list-style: none; padding: 0; margin-top: 10px; }
+#video-queue li { background: #282828; padding: 10px; margin-bottom: 8px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s; display: flex; justify-content: space-between; align-items: center;}
+#video-queue li:hover { background-color: #383838; }
+#video-queue li.now-playing { background-color: #1db954; font-weight: bold; }
+#video-queue .video-title { max-width: 80%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+#share-link { background-color: #333; padding: 8px; border-radius: 4px; font-family: monospace; word-break: break-all; margin-top: 10px; display: none; cursor: pointer; }
+
+/* SEO Change: Styles for new content sections */
+.content-section { background-color: #181818; padding: 20px; border-radius: 8px; margin: 40px 0; border: 1px solid #333; }
+.how-it-works-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; text-align: center; }
+.footer { text-align: center; color: #888; margin-top: 40px; padding-bottom: 20px; font-size: 0.9em; }

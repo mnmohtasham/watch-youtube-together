@@ -1,349 +1,57 @@
+<!-- templates/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- SEO Change: Optimized Title for Branding and Keywords -->
-    <title>DittoPlay - Free YouTube Watch Party & Sync Player</title>
-
-    <!-- SEO Change: Added Meta Description for Google Search Results -->
-    <meta name="description" content="Watch YouTube videos in perfect sync with friends for free! Create a room instantly, share the link, and enjoy a real-time watch party. No sign-up required.">
-
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { max-width: 1400px; width: 100%; }
-        .header { text-align: center; margin-bottom: 20px; }
-        .join-form { background-color: #181818; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px solid #333; }
-        .join-form input { padding: 10px; margin: 5px; border-radius: 4px; border: 1px solid #555; background-color: #333; color: #fff; }
-        .join-form button { padding: 10px 20px; border-radius: 4px; border: none; background-color: #1db954; color: #fff; font-weight: bold; cursor: pointer; }
-
-        .main-content { display: none; grid-template-columns: 3fr 1fr; gap: 20px; }
-        .left-panel { display: flex; flex-direction: column; }
-        .right-panel { background-color: #181818; padding: 15px; border-radius: 8px; border: 1px solid #333; height: fit-content; }
-
-        .video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; background: #000; margin-bottom: 20px; border-radius: 8px;}
-        .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-
-        .controls, .room-info { background-color: #181818; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333;}
-        .controls input { width: calc(100% - 120px); }
-        .controls button { width: 100px; margin-left: 10px; }
-
-        #video-queue { list-style: none; padding: 0; margin-top: 10px; }
-        #video-queue li { background: #282828; padding: 10px; margin-bottom: 8px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s; display: flex; justify-content: space-between; align-items: center;}
-        #video-queue li:hover { background-color: #383838; }
-        #video-queue li.now-playing { background-color: #1db954; font-weight: bold; }
-        #video-queue .video-title { max-width: 80%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-        #share-link { background-color: #333; padding: 8px; border-radius: 4px; font-family: monospace; word-break: break-all; margin-top: 10px; display: none; cursor: pointer; }
-        
-        /* SEO Change: Styles for new content sections */
-        .content-section { background-color: #181818; padding: 20px; border-radius: 8px; margin: 40px 0; border: 1px solid #333; }
-        .how-it-works-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; text-align: center; }
-        .footer { text-align: center; color: #888; margin-top: 40px; padding-bottom: 20px; font-size: 0.9em; }
-
-    </style>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-PQXX8LHK52"></script>
-    <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-PQXX8LHK52');
-    </script>
+    <title>Dashboard - DittoPlay</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-
 <body>
-
     <div class="container">
-        <!-- SEO Change: Updated H1 to be the brand name -->
-        <div class="header"><h1>DittoPlay</h1></div>
-
-        <!-- Join Form -->
-        <div id="join-container" class="join-form">
-            <!-- SEO Change: Promoted to H2 for better structure -->
-            <h2>Join or Create a Room</h2>
-            <input type="text" id="username" placeholder="Enter your name">
-            <input type="text" id="room" placeholder="Enter room name (or leave blank to create one)">
-            <button id="join-btn">Join Room</button>
+        <div class="header">
+            <h1>DittoPlay Dashboard</h1>
+            <!-- FIX: Changed 'logout' to 'main.logout' -->
+            <p>Hello, {{ current_user.username }}! <a href="{{ url_for('main.logout') }}">Logout</a></p>
         </div>
-        
-        <!-- Main Content -->
-        <div id="main-content" class="main-content">
-            <div class="left-panel">
-                <div class="controls">
-                    <input type="text" id="video-url" placeholder="Paste YouTube URL to add to queue">
-                    <button id="add-to-queue-btn">Add Video</button>
-                </div>
-                <div class="video-container"><div id="player"></div></div>
-            </div>
 
-            <div class="right-panel">
-                <div class="room-info">
-                    <!-- SEO Change: Promoted to H3 for better structure -->
-                    <h3>Room: <span id="room-name"></span></h3>
-                    <p>Share this link with friends:</p>
-                    <div id="share-link" title="Click to copy"></div>
-                    
-                    <!-- SEO Change: Promoted to H3 -->
-                    <h3>Users Online:</h3>
-                    <ul id="user-list"></ul>
-
-                    <!-- SEO Change: Promoted to H3 -->
-                    <h3>Video Queue:</h3>
-                    <ul id="video-queue">
-                        <!-- Queue items will be added here by JS -->
-                    </ul>
-                </div>
-            </div>
+        <!-- Create Room Form -->
+        <div class="join-form">
+            <h2>Create a New Room</h2>
+            <form method="post">
+                <input type="text" name="room_name" placeholder="Enter new room name" required>
+                <button type="submit">Create Room</button>
+            </form>
         </div>
-        
-        <!-- SEO Change: Added keyword-rich content section that is always visible on the homepage -->
-        <div id="landing-page-content">
-            <div class="content-section">
-                <h2 style="text-align: center;">How to Host a YouTube Watch Party in 30 Seconds</h2>
-                <div class="how-it-works-grid">
-                    <div>
-                        <h3>1. Create a Room</h3>
-                        <p>Simply enter your name and a room ID. No sign-ups, downloads, or credit cards required.</p>
-                    </div>
-                    <div>
-                        <h3>2. Share the Link</h3>
-                        <p>Send the unique room link to your friends. They can join instantly on any device.</p>
-                    </div>
-                    <div>
-                        <h3>3. Watch in Sync</h3>
-                        <p>Play, pause, and seek videos together in perfect, real-time synchronization.</p>
-                    </div>
-                </div>
-            </div>
+
+        <!-- List of User's Rooms -->
+        <div class="content-section">
+            <h2>My Rooms</h2>
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                <ul class=flashes>
+                {% for message in messages %}
+                  <li>{{ message }}</li>
+                {% endfor %}
+                </ul>
+              {% endif %}
+            {% endwith %}
             
-            <div class="content-section">
-                <h2 style="text-align: center;">Frequently Asked Questions (FAQ)</h2>
-                <div>
-                  <h3>Is DittoPlay really free?</h3>
-                  <p>Yes! DittoPlay is 100% free to use for hosting a watch party. We created this tool to make it easy for friends and long-distance family to watch YouTube videos together, no matter where they are.</p>
-                </div>
-                <div>
-                  <h3>Do my friends need to install anything?</h3>
-                  <p>No, there is absolutely nothing to install. DittoPlay works directly in your web browser (like Chrome, Firefox, or Safari) on both desktop and mobile devices.</p>
-                </div>
-                <div>
-                  <h3>How many people can join a room?</h3>
-                  <p>Currently, we support up to 50 people in a single room for a smooth playback experience. Enjoy your movie night or binge-watching session!</p>
-                </div>
-            </div>
+            {% if user_rooms %}
+                <ul>
+                {% for room in user_rooms %}
+                    <li>
+                        <!-- FIX: Changed 'room' to 'main.room' -->
+                        <a href="{{ url_for('main.room', room_id=room.name) }}">{{ room.name }}</a>
+                        <!-- FIX: Changed 'delete_room' to 'main.delete_room' -->
+                        <form action="{{ url_for('main.delete_room', room_id=room.name) }}" method="post" style="display:inline;">
+                            <button type="submit" onclick="return confirm('Are you sure you want to delete this room?');">Delete</button>
+                        </form>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p>You haven't created any rooms yet.</p>
+            {% endif %}
         </div>
-
     </div>
-
-    <!-- SEO Change: Added a simple footer for credibility and completeness -->
-    <footer class="footer">
-        © 2023 DittoPlay. All rights reserved. <br>
-        DittoPlay is not affiliated with YouTube. All video content is served directly from YouTube's official player.
-    </footer>
-
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script>
-        // --- Globals ---
-        let player, currentRoom = '', currentUsername = '', isReceivingEvent = false;
-
-        // --- DOM Elements ---
-        const joinContainer = document.getElementById('join-container');
-        const mainContent = document.getElementById('main-content');
-        const landingPageContent = document.getElementById('landing-page-content'); // SEO Change
-        const joinBtn = document.getElementById('join-btn');
-        const addToQueueBtn = document.getElementById('add-to-queue-btn');
-        const roomNameEl = document.getElementById('room-name');
-        const userListEl = document.getElementById('user-list');
-        const shareLinkEl = document.getElementById('share-link');
-        const videoQueueEl = document.getElementById('video-queue');
-
-        // --- Socket.IO Connection ---
-        const socket = io();
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const path = window.location.pathname;
-            const parts = path.split('/');
-            
-            if (parts.length === 3 && parts[1] === 'room' && parts[2]) {
-                const roomNameFromUrl = parts[2];
-                document.getElementById('room').value = roomNameFromUrl;
-                document.getElementById('room').disabled = true;
-            }
-        });
-
-        joinBtn.addEventListener('click', () => {
-            currentUsername = document.getElementById('username').value.trim();
-            let roomInput = document.getElementById('room').value.trim();
-
-            if (!currentUsername) {
-                alert('Please enter a username.');
-                return;
-            }
-            
-            currentRoom = roomInput || `room-${Math.random().toString(36).substr(2, 5)}`;
-            
-            if (!roomInput) {
-                window.history.pushState({}, '', `/room/${currentRoom}`);
-            }
-
-            socket.emit('join', { username: currentUsername, room: currentRoom });
-            
-            // --- UI Change ---
-            joinContainer.style.display = 'none';
-            landingPageContent.style.display = 'none'; // SEO Change: Hide landing content after joining a room
-            mainContent.style.display = 'grid'; 
-            roomNameEl.textContent = currentRoom;
-
-            const shareableLink = window.location.origin + `/room/${currentRoom}`;
-            shareLinkEl.textContent = shareableLink;
-            shareLinkEl.style.display = 'block';
-        });
-
-        // The rest of your JavaScript remains unchanged...
-        // ... (all the socket listeners and YouTube player functions) ...
-        
-        addToQueueBtn.addEventListener('click', () => {
-            const videoUrl = document.getElementById('video-url').value;
-            const videoId = extractVideoID(videoUrl);
-            if (videoId) {
-                socket.emit('add_to_queue', {
-                    room: currentRoom,
-                    video_id: videoId,
-                    video_title: `Video: ${videoId}` // Placeholder title
-                });
-                document.getElementById('video-url').value = '';
-            } else {
-                alert('Invalid YouTube URL');
-            }
-        });
-        
-        shareLinkEl.addEventListener('click', () => {
-            navigator.clipboard.writeText(shareLinkEl.textContent).then(() => {
-                alert('Room link copied to clipboard!');
-            }, (err) => {
-                console.error('Could not copy text: ', err);
-            });
-        });
-
-        socket.on('queue_update', (data) => {
-            renderQueue(data.queue);
-        });
-        
-        socket.on('user_list_update', (data) => {
-            userListEl.innerHTML = '';
-            data.users.forEach(user => {
-                const li = document.createElement('li');
-                li.textContent = user;
-                userListEl.appendChild(li);
-            });
-        });
-        
-        socket.on('sync_state', (data) => {
-            console.log('Syncing state from server:', data);
-            isReceivingEvent = true;
-            renderQueue(data.queue, data.current_video_index);
-            if (player && data.current_video_index > -1) {
-                const video = data.queue[data.current_video_index];
-                player.loadVideoById(video.id);
-                setTimeout(() => {
-                    player.seekTo(data.time, true);
-                    if (data.state === 'PLAYING') {
-                        player.playVideo();
-                    } else {
-                        player.pauseVideo();
-                    }
-                    setTimeout(() => { isReceivingEvent = false; }, 1200);
-                }, 200);
-            } else {
-                isReceivingEvent = false;
-            }
-        });
-
-        socket.on('state_change', (data) => {
-            if (!player) return;
-            console.log('Received state change:', data);
-            isReceivingEvent = true;
-            if(data.current_video_index !== undefined) {
-                updateNowPlaying(data.current_video_index);
-            }
-            switch (data.event) {
-                case 'load_video':
-                    player.loadVideoById(data.video_id, data.time);
-                    if (data.state === 'PLAYING') player.playVideo();
-                    break;
-                case 'play':
-                    player.seekTo(data.time, true);
-                    player.playVideo();
-                    break;
-                case 'pause':
-                    player.pauseVideo();
-                    player.seekTo(data.time, true);
-                    break;
-                case 'seek':
-                    player.seekTo(data.time, true);
-                    break;
-            }
-            setTimeout(() => { isReceivingEvent = false; }, 500);
-        });
-        
-        function onYouTubeIframeAPIReady() {
-            player = new YT.Player('player', {
-                height: '100%', width: '100%',
-                events: { 'onReady': onPlayerReady, 'onStateChange': onPlayerStateChange },
-                playerVars: { 'mute': 1 }
-            });
-        }
-        
-        function onPlayerReady(event) { console.log('Player is ready.'); }
-
-        function onPlayerStateChange(event) {
-            if (isReceivingEvent) return;
-            const currentTime = player.getCurrentTime();
-            let state;
-            switch (event.data) {
-                case YT.PlayerState.PLAYING: state = 'play'; break;
-                case YT.PlayerState.PAUSED: state = 'pause'; break;
-
-                case YT.PlayerState.ENDED: state = 'video_ended'; break;
-                case YT.PlayerState.BUFFERING: state = 'seek'; break;
-                default: return;
-            }
-            console.log('Sending player event:', state);
-            socket.emit('player_event', { room: currentRoom, event: state, time: currentTime });
-        }
-
-        function extractVideoID(url) {
-            const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-            return url.match(regex)?.[1] || null;
-        }
-
-        function renderQueue(queue, nowPlayingIndex = -1) {
-            videoQueueEl.innerHTML = '';
-            queue.forEach((video, index) => {
-                const li = document.createElement('li');
-                li.dataset.index = index;
-                li.innerHTML = `<span class="video-title">${video.title}</span><small>Play</small>`;
-                if (index === nowPlayingIndex) li.classList.add('now-playing');
-                li.addEventListener('click', () => {
-                    socket.emit('play_specific_video', { room: currentRoom, index: index });
-                });
-                videoQueueEl.appendChild(li);
-            });
-        }
-
-        function updateNowPlaying(index) {
-            document.querySelectorAll('#video-queue li').forEach(li => li.classList.remove('now-playing'));
-            const currentItem = document.querySelector(`#video-queue li[data-index="${index}"]`);
-            if (currentItem) currentItem.classList.add('now-playing');
-        }
-
-        var tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        var firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-    </script>
 </body>
 </html>

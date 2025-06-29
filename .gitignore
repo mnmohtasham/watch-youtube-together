@@ -23,3 +23,13 @@ config.ini
 
 # Log files
 *.log
+
+# env config
+.env.local
+.env
+
+# local files
+instance/
+app.db
+migrations/
+__pycache__/

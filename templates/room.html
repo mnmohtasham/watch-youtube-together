@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room: {{ room_name }} - DittoPlay</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{{ room_name }}</h1>
+            <p><a href="{{ url_for('main.index') }}">Back to Dashboard</a> | Hello, {{ current_user.username }}! <a href="{{ url_for('main.logout') }}">Logout</a></p>
+        </div>
+
+        <div class="main-content" id="main-content">
+            <div class="left-panel">
+                <div class="video-container">
+                    <div id="player"></div>
+                </div>
+                <div class="controls">
+                    <form id="add-video-form">
+                        <input type="text" id="video-url-input" placeholder="Enter YouTube Video URL or ID">
+                        <button type="submit">Add to Queue</button>
+                    </form>
+                </div>
+            </div>
+            <div class="right-panel">
+                 <div class="room-info">
+                    <button id="share-button" class="join-form button" style="width: 100%; margin-bottom: 15px;">Share Room</button>
+                    <div id="share-link-container" style="display: none;">
+                        <p style="margin-top: 0; font-size: 0.9em; color: #aaa;">Click the link to copy:</p>
+                        <!--
+                          THE FINAL, CORRECTED LINE:
+                          The function needs the keyword `room_id`. We will pass it the value from the `room_id` variable
+                          that our route provides. This is the most direct and unambiguous way.
+                        -->
+                        <pre id="share-link">{{ url_for('main.room', room_id=room_id, _external=True) }}</pre>
+                    </div>
+
+                    <h3>Users in Room</h3>
+                    <ul id="user-list">
+                        <!-- User list will be populated by JS -->
+                    </ul>
+                </div>
+                <div class="queue-container">
+                    <h3>Video Queue</h3>
+                    <ul id="video-queue">
+                        <!-- Queue will be populated by JS -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" charset="utf-8">
+        // This is correct. It uses the `room_id` from the context.
+        const ROOM_ID = "{{ room_id }}";
+    </script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
